@@ -1,6 +1,6 @@
 NAME = wifimeter
 CC = xtensa-lx106-elf-gcc
-CFLAGS = -Wall -Wno-implicit-function-declaration -Os -I. -mlongcalls
+CFLAGS = -Wall -Wno-implicit-function-declaration -Os -I. -mlongcalls -DICACHE_FLASH
 LDLIBS = -nostdlib -Wl,--start-group -lmain -lupgrade -lnet80211 -lwpa -llwip -lpp -lphy -Wl,--end-group -lcirom -lgcc
 LDFLAGS = -Teagle.app.v6.ld
 

@@ -27,14 +27,12 @@
 // TODO: Global variabless are EVIL!
 static struct httpd_config *config;
 
-ICACHE_FLASH_ATTR
-static const char httpd_response_400[] =
+static char httpd_response_400[] =
 	"HTTP/1.0 400 Bad Request\r\n"
 	"Connection: close\r\n"
 	"\r\n";
 
-ICACHE_FLASH_ATTR
-static const char httpd_response_404[] =
+static char httpd_response_404[] =
 	"HTTP/1.0 404 Not Found\r\n"
 	"Connection: close\r\n"
 	"\r\n";
