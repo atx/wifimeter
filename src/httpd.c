@@ -43,6 +43,9 @@ static void httpd_callback_recv(void *arg, char *pdata, unsigned short len)
 	struct espconn *conn = arg;
 	struct httpd_conn_private *cpriv = conn->reverse;
 	char *tok = NULL;
+	char *hname = NULL;
+	char *hval = NULL;
+	bool valpars = false;
 	int at = 0;
 	int i;
 	int k;
@@ -53,16 +56,12 @@ static void httpd_callback_recv(void *arg, char *pdata, unsigned short len)
 		k = 2;
 		for (; at < len && k > 0; at++) {
 			if (pdata[at] == ' ') {
+				pdata[at] = '\0';
 				k--;
-				if (k == 1) {
-					if (at + 1 >= len)
-						break;
+				if (k == 1)
 					tok = &pdata[at + 1];
-				}
-				else if (k == 0) {
-					pdata[at] = '\0';
+				else if (k == 0)
 					break;
-				}
 			}
 		}
 
@@ -79,10 +78,9 @@ static void httpd_callback_recv(void *arg, char *pdata, unsigned short len)
 			// TODO: Add proper matcher with wildcards and stuff
 			if (os_strcmp(config->urls[i].url, tok) == 0) {
 				cpriv->handler = &config->urls[i].handler;
-				// TODO: Implement HTTP method parsing
 				if (config->urls[i].handler.init != NULL)
-					config->urls[i].handler.init(conn, config->urls[i].args, NULL,
-						tok);
+					config->urls[i].handler.init(conn, config->urls[i].args,
+						pdata, tok);
 				break;
 			}
 			i++;
@@ -97,14 +95,34 @@ static void httpd_callback_recv(void *arg, char *pdata, unsigned short len)
 			cpriv->state = HTTPD_CONN_HEADERS;
 		}
 	}
+
 	if (cpriv->state == HTTPD_CONN_HEADERS) {
-		// TODO: Actual header parsing
 		for (; at < len - 3; at++) {
-			if (pdata[at] == '\r' && pdata[at + 1] == '\n' &&
+			// Parse headers
+			if (pdata[at] == '\r' && pdata[at + 1] == '\n') {
+				pdata[at] = '\0';
+				if (hval != NULL && cpriv->handler->header != NULL)
+					cpriv->handler->header(conn, cpriv->handler->data,
+						hname, hval);
+
+				hname = &pdata[at + 2];
+				hval = NULL;
+			}
+			if (pdata[at] == ':') {
+				valpars = true;
+				pdata[at] = '\0';
+			} else if (valpars && pdata[at] != ' ') {
+				valpars = false;
+				hval = &pdata[at];
+			}
+
+			// \r\n\r\n means end of the header section
+			if (pdata[at] == '\0' && pdata[at + 1] == '\n' &&
 				pdata[at + 2] == '\r' && pdata[at + 3] == '\n') {
 				if (cpriv->handler->reqf != NULL)
 					cpriv->handler->reqf(conn, cpriv->handler->data);
 				cpriv->state = HTTPD_CONN_DATA;
+				break;
 			}
 		}
 	}
