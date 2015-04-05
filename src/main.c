@@ -68,6 +68,7 @@ void user_init(void)
 
 	wifi_set_opmode(STATION_MODE);
 	wifi_station_set_config(&config);
+	wifi_set_phy_mode(PHY_MODE_11B);
 	wifi_station_connect();
 
 	httpd_init(&config_httpd);
